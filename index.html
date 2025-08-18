@@ -2201,6 +2201,73 @@
 #group-avatar-library-modal {
     z-index: 102;
 }
+/* --- [最终修复] 记忆之书页面全屏布局 --- */
+
+/* 关键修复：确保#memory-screen在激活时，能像其他页面一样正确地占据全屏 */
+#memory-screen.screen.active {
+    display: flex; /* 强制其表现为flex容器 */
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    position: absolute; /* 将其脱离文档流，覆盖在其他screen之上 */
+    top: 0;
+    left: 0;
+    background: linear-gradient(135deg, #fce4ec, #f8bbd0); /* 设置背景 */
+}
+
+#memory-screen .content {
+    flex-grow: 1;
+    padding: 20px;
+    padding-bottom: 100px; /* 为悬浮按钮留出空间 */
+    overflow-y: auto; /* 确保内容可滚动 */
+}
+
+/* 修复聊天室顶部图标重叠问题 */
+.app-header .action-btn-group {
+    position: relative;
+    z-index: 1;
+}
+
+/* 记忆列表项样式 */
+#memory-list-container .list-item {
+    flex-direction: column;
+    align-items: flex-start;
+    cursor: default;
+}
+#memory-list-container .memory-content {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    line-height: 1.6;
+    font-size: 15px;
+    padding: 5px 0;
+    width: 100%;
+    cursor: pointer;
+}
+
+/* 悬浮添加按钮样式 */
+.fab-add-btn {
+    position: absolute;
+    bottom: 30px;
+    right: 30px;
+    width: 56px;
+    height: 56px;
+    background-color: var(--primary-color);
+    color: var(--white-color);
+    border-radius: 50%;
+    border: none;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    font-size: 32px;
+    font-weight: 300;
+    display: flex; /* 使用flex布局使加号完美居中 */
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background-color 0.2s ease, transform 0.2s ease;
+}
+.fab-add-btn:hover {
+    background-color: var(--secondary-color);
+    transform: scale(1.05);
+}
     </style>
 </head>
 
@@ -2236,8 +2303,14 @@
                     <span id="chat-room-status-text">在线</span>
                 </div>
             </div>
-            <button class="action-btn" id="chat-settings-btn"><img src="https://i.postimg.cc/nhwP4pQy/chan-73.png"
-                                                                   alt="设置"></button>
+<div class="action-btn-group">
+    <button class="action-btn" id="memory-book-btn">
+        <svg viewBox="0 0 24 24" fill="currentColor" style="width: 24px; height: 24px;">
+            <path d="M18 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 4h5v8l-2.5-1.5L6 12V4z"></path>
+        </svg>
+    </button>
+    <button class="action-btn" id="chat-settings-btn"><img src="https://i.postimg.cc/nhwP4pQy/chan-73.png" alt="设置"></button>
+</div>
         </header>
         <header class="app-header" id="chat-room-header-select" style="display: none;">
             <button class="action-btn" id="cancel-multi-select-btn">取消</button>
@@ -2613,10 +2686,7 @@
                 <div class="form-group">
                     <button type="button" class="btn btn-secondary" id="link-world-book-btn">关联世界书</button>
                 </div>    
-            <hr style="border:none; border-top:1px solid #eee; margin: 20px 0;">
-                <div class="form-group">
-                    <button type="button" class="btn btn-secondary" id="link-world-book-btn">关联世界书</button>
-                </div>
+
                 <div class="form-group"><label for="setting-theme-color">主题颜色 (对方/我方)</label><select
                         id="setting-theme-color"></select></div>
 
@@ -2641,6 +2711,13 @@
                                                                                                    id="setting-max-memory"
                                                                                                    value="10" min="1">
                 </div>
+<!-- 【新增】 -->
+<div class="form-group">
+    <label for="setting-memory-interval">自动总结记忆间隔 (条)</label>
+    <input type="number" id="setting-memory-interval" value="20" min="5">
+    <p style="font-size:12px; color:#888; margin-top:5px;">每隔N条消息，AI会自动总结一次记忆。设为0则禁用。</p>
+</div>
+<!-- 【新增结束】 -->
                 <div class="form-group"><label for="setting-chat-bg-upload" class="btn btn-primary">更换聊天背景</label><input
                         type="file" id="setting-chat-bg-upload" accept="image/*" style="display:none;"></div>
                 <button type="submit" class="btn btn-primary">保存设置</button>
@@ -2752,6 +2829,13 @@
                                                                                                          id="setting-group-max-memory"
                                                                                                          value="10"
                                                                                                          min="1"></div>
+<!-- 【新增】 -->
+<div class="form-group">
+    <label for="setting-group-memory-interval">自动总结记忆间隔 (条)</label>
+    <input type="number" id="setting-group-memory-interval" value="20" min="5">
+    <p style="font-size:12px; color:#888; margin-top:5px;">每隔N条消息，AI会自动总结一次记忆。设为0则禁用。</p>
+</div>
+<!-- 【新增结束】 -->
                 <div class="form-group"><label for="setting-group-chat-bg-upload"
                                                class="btn btn-primary">更换聊天背景</label><input type="file"
                                                                                                   id="setting-group-chat-bg-upload"
@@ -3441,6 +3525,11 @@ db.characters.forEach(c => {
         }));
     }
     // --- 修改结束 ---
+    // --- 【新增代码】 ---
+    if (!c.memories) c.memories = []; // 初始化记忆数组
+    if (c.memorySummarizationInterval === undefined) c.memorySummarizationInterval = 20; // 默认20条消息总结一次
+    if (c.messagesSinceLastSummary === undefined) c.messagesSinceLastSummary = 0; // 初始化计数器
+    // --- 【新增结束】 ---
 });
 // ▼▼▼ 使用这个新版本替换旧的 db.groups.forEach 循环 ▼▼▼
 db.groups.forEach(g => {
@@ -3459,6 +3548,11 @@ db.groups.forEach(g => {
         }));
     }
     // --- 新增结束 ---
+    // --- 【新增代码】 ---
+    if (!g.memories) g.memories = []; // 初始化记忆数组
+    if (g.memorySummarizationInterval === undefined) g.memorySummarizationInterval = 20; // 默认20条消息总结一次
+    if (g.messagesSinceLastSummary === undefined) g.messagesSinceLastSummary = 0; // 初始化计数器
+    // --- 【新增结束】 ---
 });
 // ▲▲▲ 替换结束 ▲▲▲
 
@@ -3618,6 +3712,7 @@ db.groups.forEach(g => {
             setupTutorialApp();
             setupVideoCallSystem();
             setupVideoLogModal(); // <-- 这是您上次添加的
+            setupMemorySystem(); // <-- 【新增这一行】
            document.getElementById('cancel-call-btn').addEventListener('click', () => {
              // 简单的返回聊天界面逻辑
              switchScreen('chat-room-screen');
@@ -4763,6 +4858,12 @@ async function addSystemNotificationToChat(text) {
 }
 
         async function addMessageBubble(message) {
+    // --- 【新增】消息计数 ---
+    const chatForCount = (currentChatType === 'private') ? db.characters.find(c => c.id === currentChatId) : db.groups.find(g => g.id === currentChatId);
+    if (chatForCount) {
+        chatForCount.messagesSinceLastSummary = (chatForCount.messagesSinceLastSummary || 0) + 1;
+    }
+    // --- 【新增结束】 ---
             if (currentChatType === 'private') {
                 const character = db.characters.find(c => c.id === currentChatId);
                 // const systemMessageRegex = /\[system:.*?\]|\[system-display:.*?\]/;
@@ -5128,6 +5229,15 @@ function generatePrivateSystemPrompt(character) {
     const currentTime = `${now.getFullYear()}年${pad(now.getMonth() + 1)}月${pad(now.getDate())}日 ${pad(now.getHours())}:${pad(now.getMinutes())}`;
 
     let prompt = `你正在一个名为“404”的线上聊天软件中扮演一个角色。请严格遵守以下规则：\n`;
+    // --- 【新增】记忆注入 ---
+    if (character.memories && character.memories.length > 0) {
+        prompt += `\n# 长期记忆 (你需要记住并应用到对话中的关键信息):\n`;
+        character.memories.forEach(mem => {
+            prompt += `- ${mem.content}\n`;
+        });
+        prompt += `\n`;
+    }
+    // --- 【新增结束】 ---
     prompt += `核心规则：\n`;
     prompt += `A. 当前时间：现在是 ${currentTime}。\n`;
     prompt += `B. 纯线上互动：这是一个完全虚拟的线上聊天。你扮演的角色和我之间没有任何线下关系。严禁任何关于线下见面的建议。\n\n`;
@@ -5202,7 +5312,15 @@ function generateGroupSystemPrompt(group) {
     const worldBooksAfter = (group.worldBookIds || []).map(id => db.worldBooks.find(wb => wb.id === id && wb.position === 'after')).filter(Boolean).map(wb => wb.content).join('\n');
 
     let prompt = `你正在一个名为“404”的线上聊天软件中，在一个名为“${group.name}”的群聊里进行角色扮演。请严格遵守以下所有规则：\n\n`;
-
+    // --- 【新增】记忆注入 ---
+    if (group.memories && group.memories.length > 0) {
+        prompt += `# 群聊的长期记忆 (所有成员都需要记住并应用到对话中的关键信息):\n`;
+        group.memories.forEach(mem => {
+            prompt += `- ${mem.content}\n`;
+        });
+        prompt += `\n`;
+    }
+    // --- 【新增结束】 ---
     if (worldBooksBefore) {
         prompt += `${worldBooksBefore}\n\n`;
     }
@@ -5695,11 +5813,18 @@ async function processStream(response, chat, apiType) {
     }
 
     if (anythingProcessed) {
+        // --- 【新增】检查并触发记忆总结 ---
+        if (chat.messagesSinceLastSummary >= chat.memorySummarizationInterval) {
+            chat.messagesSinceLastSummary = 0; // 重置计数器
+            summarizeRecentChatHistory(chat); // 异步执行，不阻塞UI
+        }
+        // --- 【新增结束】 ---
         if (document.getElementById('outgoing-call-screen').classList.contains('active') && !fullResponse.includes('[videocall:accepted]') && !fullResponse.includes('[videocall:initiate')) {
             addSystemNotificationToChat(`对方无应答。`);
             switchScreen('chat-room-screen');
         }
         await saveData();
+
         renderChatList();
     }
 }
@@ -6668,6 +6793,9 @@ function renderAvatarLibrary(character) {
                 customCssTextarea.disabled = !useCustomCssCheckbox.checked;
                 const theme = colorThemes[e.theme || 'white_pink'];
                 updateBubbleCssPreview(privatePreviewBox, e.customBubbleCss, !e.useCustomBubbleCss, theme);
+                // --- 【新增代码】 ---
+                document.getElementById('setting-memory-interval').value = e.memorySummarizationInterval;
+                // --- 【新增结束】 ---
             }
         }
 
@@ -6682,6 +6810,9 @@ function renderAvatarLibrary(character) {
                 e.myPersona = document.getElementById('setting-my-persona').value;
                 e.theme = document.getElementById('setting-theme-color').value;
                 e.maxMemory = document.getElementById('setting-max-memory').value;
+                // --- 【新增代码】 ---
+                e.memorySummarizationInterval = parseInt(document.getElementById('setting-memory-interval').value, 10) || 0;
+                // --- 【新增结束】 ---
                 e.useCustomBubbleCss = document.getElementById('setting-use-custom-css').checked;
                 e.customBubbleCss = document.getElementById('setting-custom-bubble-css').value;
                 await saveData();
@@ -7321,6 +7452,9 @@ function renderGroupAvatarLibrary(group) {
             const theme = colorThemes[group.theme || 'white_pink'];
             updateBubbleCssPreview(groupPreviewBox, group.customBubbleCss, !group.useCustomBubbleCss, theme);
              renderPresetDropdown('setting-group-my-preset'); 
+            // --- 【新增代码】 ---
+            document.getElementById('setting-group-memory-interval').value = group.memorySummarizationInterval;
+            // --- 【新增结束】 ---
         }
 
         function renderGroupMembersInSettings(group) {
@@ -7371,6 +7505,9 @@ function renderGroupAvatarLibrary(group) {
             group.me.persona = document.getElementById('setting-group-my-persona').value;
             group.theme = document.getElementById('setting-group-theme-color').value;
             group.maxMemory = document.getElementById('setting-group-max-memory').value;
+            // --- 【新增代码】 ---
+            group.memorySummarizationInterval = parseInt(document.getElementById('setting-group-memory-interval').value, 10) || 0;
+            // --- 【新增结束】 ---
             group.useCustomBubbleCss = document.getElementById('setting-group-use-custom-css').checked;
             group.customBubbleCss = document.getElementById('setting-group-custom-bubble-css').value;
             updateCustomBubbleStyle(currentChatId, group.customBubbleCss, group.useCustomBubbleCss);
@@ -8086,6 +8223,277 @@ function deleteVideoChatMessage(messageId) {
         showToast('消息已删除');
     }
 }
+// =================================================================
+// --- 【新增】MEMORY BOOK SYSTEM ---
+// =================================================================
+
+function setupMemorySystem() {
+    const memoryBookBtn = document.getElementById('memory-book-btn');
+    const manualSummaryBtn = document.getElementById('manual-summary-btn'); // 【为您补充的变量获取】
+    const addMemoryBtn = document.getElementById('add-memory-btn');
+    const editMemoryModal = document.getElementById('edit-memory-modal');
+    const editMemoryForm = document.getElementById('edit-memory-form');
+    const memoryListContainer = document.getElementById('memory-list-container');
+
+    memoryBookBtn.addEventListener('click', () => {
+        renderMemoryList();
+        switchScreen('memory-screen');
+    });
+
+    addMemoryBtn.addEventListener('click', () => {
+        openEditMemoryModal();
+    });
+
+    editMemoryModal.addEventListener('click', (e) => {
+        if (e.target === editMemoryModal) {
+            editMemoryModal.classList.remove('visible');
+        }
+    });
+
+    editMemoryForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        saveMemoryFromModal();
+    });
+
+    memoryListContainer.addEventListener('click', (e) => {
+        const memoryItem = e.target.closest('.memory-content');
+        if (memoryItem) {
+            openEditMemoryModal(memoryItem.parentElement.dataset.id);
+        }
+    });
+
+    memoryListContainer.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        const memoryItem = e.target.closest('.list-item');
+        if (memoryItem) {
+            handleMemoryLongPress(memoryItem.dataset.id, e.clientX, e.clientY);
+        }
+    });
+
+    // 为移动端添加长按支持
+    let memoryLongPressTimer;
+    memoryListContainer.addEventListener('touchstart', (e) => {
+        const memoryItem = e.target.closest('.list-item');
+        if (memoryItem) {
+            memoryLongPressTimer = setTimeout(() => {
+                const touch = e.touches[0];
+                handleMemoryLongPress(memoryItem.dataset.id, touch.clientX, touch.clientY);
+            }, 500);
+        }
+    });
+    memoryListContainer.addEventListener('touchend', () => clearTimeout(memoryLongPressTimer));
+    memoryListContainer.addEventListener('touchmove', () => clearTimeout(memoryLongPressTimer));
+
+    // 【新增】为手动总结按钮添加事件
+    manualSummaryBtn.addEventListener('click', async (event) => {
+        const chat = (currentChatType === 'private') ? db.characters.find(c => c.id === currentChatId) : db.groups.find(g => g.id === currentChatId);
+        if (!chat) return;
+
+        manualSummaryBtn.disabled = true;
+        manualSummaryBtn.textContent = '总结中...';
+
+        try {
+            // 传入 event 对象，让函数知道是手动触发的
+            await summarizeRecentChatHistory(chat, event);
+        } finally {
+            manualSummaryBtn.disabled = false;
+            manualSummaryBtn.textContent = '总结';
+        }
+    });
+}
+
+function renderMemoryList() {
+    const chat = (currentChatType === 'private') ? db.characters.find(c => c.id === currentChatId) : db.groups.find(g => g.id === currentChatId);
+    const memoryListContainer = document.getElementById('memory-list-container');
+    const noMemoriesPlaceholder = document.getElementById('no-memories-placeholder');
+
+    memoryListContainer.innerHTML = '';
+    if (!chat || !chat.memories || chat.memories.length === 0) {
+        noMemoriesPlaceholder.style.display = 'block';
+        return;
+    }
+
+    noMemoriesPlaceholder.style.display = 'none';
+    chat.memories.forEach(memory => {
+        const li = document.createElement('li');
+        li.className = 'list-item';
+        li.dataset.id = memory.id;
+        li.innerHTML = `<div class="memory-content">${memory.content.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</div>`;
+        memoryListContainer.appendChild(li);
+    });
+}
+
+function openEditMemoryModal(memoryId = null) {
+    const modal = document.getElementById('edit-memory-modal');
+    const title = document.getElementById('edit-memory-modal-title');
+    const form = document.getElementById('edit-memory-form');
+    const contentInput = document.getElementById('memory-content-input');
+    const idInput = document.getElementById('editing-memory-id');
+
+    form.reset();
+    if (memoryId) {
+        const chat = (currentChatType === 'private') ? db.characters.find(c => c.id === currentChatId) : db.groups.find(g => g.id === currentChatId);
+        const memory = chat.memories.find(m => m.id === memoryId);
+        if (memory) {
+            title.textContent = '编辑记忆';
+            idInput.value = memory.id;
+            contentInput.value = memory.content;
+        }
+    } else {
+        title.textContent = '添加新记忆';
+        idInput.value = '';
+    }
+    modal.classList.add('visible');
+}
+
+async function saveMemoryFromModal() {
+    const chat = (currentChatType === 'private') ? db.characters.find(c => c.id === currentChatId) : db.groups.find(g => g.id === currentChatId);
+    const content = document.getElementById('memory-content-input').value.trim();
+    const id = document.getElementById('editing-memory-id').value;
+
+    if (!content) {
+        showToast('记忆内容不能为空');
+        return;
+    }
+
+    if (id) { // Edit existing memory
+        const memory = chat.memories.find(m => m.id === id);
+        if (memory) {
+            memory.content = content;
+        }
+    } else { // Add new memory
+        chat.memories.push({
+            id: `mem_${Date.now()}`,
+            content: content
+        });
+    }
+
+    await saveData();
+    renderMemoryList();
+    document.getElementById('edit-memory-modal').classList.remove('visible');
+    showToast('记忆已保存');
+}
+
+function handleMemoryLongPress(memoryId, x, y) {
+    const chat = (currentChatType === 'private') ? db.characters.find(c => c.id === currentChatId) : db.groups.find(g => g.id === currentChatId);
+    const memory = chat.memories.find(m => m.id === memoryId);
+    if (!memory) return;
+
+    createContextMenu([{
+        label: '删除记忆',
+        danger: true,
+        action: async () => {
+            if (confirm('确定要删除这条记忆吗？')) {
+                chat.memories = chat.memories.filter(m => m.id !== memoryId);
+                await saveData();
+                renderMemoryList();
+                showToast('记忆已删除');
+            }
+        }
+    }], x, y);
+}
+
+// 这是AI自动总结的核心函数 (V2 - 修复CORS并兼容多API)
+async function summarizeRecentChatHistory(chat) {
+    // 检查副API配置
+    const visionSettings = db.apiSettings.vision;
+    if (!visionSettings || !visionSettings.url || !visionSettings.key || !visionSettings.model) {
+        const msg = "副API（用于总结）未配置，跳过自动记忆总结。";
+        console.log(msg);
+        // 如果是手动点击，则需要提示用户
+        if (event && event.target && event.target.id === 'manual-summary-btn') {
+            showToast(msg);
+        }
+        return;
+    }
+
+    const interval = chat.memorySummarizationInterval > 0 ? chat.memorySummarizationInterval : chat.history.length;
+    const recentHistory = chat.history.slice(-interval);
+    
+    // 过滤掉无意义的系统消息，让总结更精准
+    const filteredHistory = recentHistory.filter(msg => !/\[system:|\[system-display:|\[.*?邀请.*?\]|\[.*?修改群名为.*?\]/.test(msg.content));
+    if (filteredHistory.length < 5) { // 如果有意义的消息太少，就不总结
+        console.log("有意义的消息不足，跳过总结。");
+        return;
+    }
+
+    const dialogue = filteredHistory.map(msg => {
+        const sender = msg.role === 'user' ? (chat.me ? chat.me.nickname : chat.myName) : (chat.name || chat.remarkName);
+        const content = msg.content.replace(/\[.*?的消息：([\s\S]+?)\]/, '$1').trim();
+        return `${sender}: ${content}`;
+    }).join('\n');
+
+    const summaryPrompt = `你是一个记忆总结助手。请根据以下对话内容，提炼出1-3条最关键、可作为长期记忆的信息点。每条信息点都应该是完整的陈述句，并且不要超过50个字。如果对话没有包含任何重要信息，请回复"无重要信息"。\n\n对话记录:\n${dialogue}`;
+
+    try {
+        // 【【【核心修复：更换CORS代理】】】
+        const proxyUrl = 'https://cors.eu.org/'; // <--- 这是唯一的修改点
+        const { url, key, model, provider } = visionSettings;
+        
+        let endpoint, headers, requestBody;
+
+        if (provider === 'gemini') {
+            // 新的代理用法是直接拼接在API地址前
+            endpoint = `${proxyUrl}${url}/v1beta/models/${model}:generateContent?key=${getRandomValue(key)}`;
+            headers = { 'Content-Type': 'application/json' };
+            requestBody = {
+                contents: [{ parts: [{ "text": summaryPrompt }] }]
+            };
+        } else { // 兼容OpenAI格式的API
+            endpoint = `${proxyUrl}${url}/v1/chat/completions`;
+            headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` };
+            requestBody = {
+                model: model,
+                messages: [{ role: 'user', content: summaryPrompt }],
+                temperature: 0.3
+            };
+        }
+
+        const response = await fetch(endpoint, { method: 'POST', headers, body: JSON.stringify(requestBody) });
+        if (!response.ok) {
+            throw new Error(`API 响应错误: ${response.status} ${await response.text()}`);
+        }
+
+        const data = await response.json();
+        let summaryText;
+        if (provider === 'gemini') {
+            summaryText = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+        } else {
+            summaryText = data.choices[0]?.message?.content?.trim();
+        }
+        
+        if (summaryText && summaryText !== "无重要信息") {
+            const newMemories = summaryText.split('\n').map(line => line.trim().replace(/^-|^\d+\.\s*/, '')).filter(Boolean);
+            let addedCount = 0;
+            newMemories.forEach(memContent => {
+                // 防止重复添加
+                if (!chat.memories.some(m => m.content === memContent)) {
+                    chat.memories.push({
+                        id: `mem_${Date.now()}_${Math.random()}`,
+                        content: memContent
+                    });
+                    addedCount++;
+                }
+            });
+            if (addedCount > 0) {
+                await saveData();
+                showToast(`AI为你总结了 ${addedCount} 条新记忆！`);
+                // 如果当前在记忆页面，则刷新列表
+                if (document.getElementById('memory-screen').classList.contains('active')) {
+                    renderMemoryList();
+                }
+            } else {
+                showToast('AI总结的记忆已存在，未添加。');
+            }
+        } else {
+             showToast('AI认为最近的对话无重要信息可供总结。');
+        }
+
+    } catch (error) {
+        console.error("记忆总结失败:", error);
+        showToast(`记忆总结失败: ${error.message}`);
+    }
+}
         init();
     });
 
@@ -8143,8 +8551,45 @@ function deleteVideoChatMessage(messageId) {
         <label for="add-group-avatar-upload" class="btn btn-primary">上传新头像</label>
     </div>
 </div>
+<!-- NEW: Memory Screen -->
+<div id="memory-screen" class="screen">
+    <header class="app-header">
+        <button class="back-btn" data-target="chat-room-screen">‹</button>
+        <div class="title-container">
+            <h1 class="title">记忆之书</h1>
+        </div>
+        <div class="action-btn-group">
+    <button class="action-btn" id="manual-summary-btn" style="font-size: 16px; font-weight: 600;">总结</button>
+</div>
+    </header>
+    <main class="content">
+        <ul class="list-container" id="memory-list-container">
+            <!-- Memories will be dynamically inserted here -->
+        </ul>
+        <div class="placeholder-text" id="no-memories-placeholder" style="display: none;">
+            <p>还没有任何长期记忆...</p>
+            <p>与角色深入对话或手动添加第一条记忆吧！</p>
+        </div>
+    </main>
+   <button id="add-memory-btn" class="fab-add-btn">+</button>
+</div>
+<!-- NEW: Edit Memory Modal -->
+<div id="edit-memory-modal" class="modal-overlay">
+    <div class="modal-window">
+        <h3 id="edit-memory-modal-title">添加/编辑记忆</h3>
+        <form id="edit-memory-form">
+            <input type="hidden" id="editing-memory-id">
+            <div class="form-group">
+                <label for="memory-content-input">记忆内容</label>
+                <textarea id="memory-content-input" rows="6" placeholder="输入重要的事件、信息或角色的变化..." required></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary">保存记忆</button>
+        </form>
+    </div>
+</div>
 </body>
 
 </html>
+
 
 
