@@ -4170,25 +4170,29 @@ function renderChatList() {
             addCharForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const newChar = {
-                    id: `char_${Date.now()}`,
-                    realName: document.getElementById('char-real-name').value,
-                    remarkName: document.getElementById('char-remark-name').value,
-                    persona: '',
-                    avatar: 'https://i.postimg.cc/Y96LPskq/o-o-2.jpg',
-                    myName: document.getElementById('my-name-for-char').value,
-                    myPersona: '',
-                    myAvatar: 'https://i.postimg.cc/GtbTnxhP/o-o-1.jpg',
-                    theme: 'white_pink',
-                    maxMemory: 10,
-                    chatBg: '',
-                    history: [],
-                    isPinned: false,
-                    status: '在线',
-                    worldBookIds: [],
-                    useCustomBubbleCss: false,
-                     avatarLibrary: [], // 添加这一行
-                    customBubbleCss: ''
-                };
+    id: `char_${Date.now()}`,
+    realName: document.getElementById('char-real-name').value,
+    remarkName: document.getElementById('char-remark-name').value,
+    persona: '',
+    avatar: 'https://i.postimg.cc/Y96LPskq/o-o-2.jpg',
+    myName: document.getElementById('my-name-for-char').value,
+    myPersona: '',
+    myAvatar: 'https://i.postimg.cc/GtbTnxhP/o-o-1.jpg',
+    theme: 'white_pink',
+    maxMemory: 10,
+    chatBg: '',
+    history: [],
+    isPinned: false,
+    status: '在线',
+    worldBookIds: [],
+    useCustomBubbleCss: false,
+    avatarLibrary: [],
+    customBubbleCss: '',
+    // 【新增】确保新角色拥有完整的记忆属性
+    memories: [],
+    memorySummarizationInterval: 20,
+    messagesSinceLastSummary: 0
+};
                 db.characters.push(newChar);
                 await saveData();
                 renderChatList();
@@ -5714,7 +5718,7 @@ async function processStream(response, chat, apiType) {
                 const newRemarkName = cmdMatch[1].trim();
                 const character = db.characters.find(c => c.id === currentChatId);
                 if (character && newRemarkName) {
-                    const notificationContent = `[system-display:${character.realName}把备注修改为“${newRemarkName}”]`;
+                    const notificationContent = `[system-display:${character.realName} 将备注修改为 “${newRemarkName}”]`;
                     character.remarkName = newRemarkName;
                     document.getElementById('chat-room-title').textContent = newRemarkName;
                     const notificationMessage = { id: `msg_sys_${Date.now()}`, role: 'system', content: notificationContent, parts: [], timestamp: Date.now() };
@@ -6799,31 +6803,67 @@ function renderAvatarLibrary(character) {
             }
         }
 
-        async function saveSettingsFromSidebar() {
-            const e = db.characters.find(e => e.id === currentChatId);
-            if (e) {
-                e.avatar = document.getElementById('setting-char-avatar-preview').src;
-                e.remarkName = document.getElementById('setting-char-remark').value;
-                e.persona = document.getElementById('setting-char-persona').value;
-                e.myAvatar = document.getElementById('setting-my-avatar-preview').src;
-                e.myName = document.getElementById('setting-my-name').value;
-                e.myPersona = document.getElementById('setting-my-persona').value;
-                e.theme = document.getElementById('setting-theme-color').value;
-                e.maxMemory = document.getElementById('setting-max-memory').value;
-                // --- 【新增代码】 ---
-                e.memorySummarizationInterval = parseInt(document.getElementById('setting-memory-interval').value, 10) || 0;
-                // --- 【新增结束】 ---
-                e.useCustomBubbleCss = document.getElementById('setting-use-custom-css').checked;
-                e.customBubbleCss = document.getElementById('setting-custom-bubble-css').value;
-                await saveData();
-                showToast('设置已保存！');
-                chatRoomTitle.textContent = e.remarkName;
-                renderChatList();
-                updateCustomBubbleStyle(currentChatId, e.customBubbleCss, e.useCustomBubbleCss);
-                currentPage = 1;
-                renderMessages(false, true);
-            }
+async function saveSettingsFromSidebar() {
+    const character = db.characters.find(c => c.id === currentChatId);
+    if (character) {
+        // --- 【核心修改开始】 ---
+
+        // 1. 先获取旧名字和新名字
+        const oldRemarkName = character.remarkName;
+        const newRemarkName = document.getElementById('setting-char-remark').value.trim();
+
+        // 2. 更新所有设置到角色对象
+        character.avatar = document.getElementById('setting-char-avatar-preview').src;
+        character.remarkName = newRemarkName; // 更新为新名字
+        character.persona = document.getElementById('setting-char-persona').value;
+        character.myAvatar = document.getElementById('setting-my-avatar-preview').src;
+        character.myName = document.getElementById('setting-my-name').value;
+        character.myPersona = document.getElementById('setting-my-persona').value;
+        character.theme = document.getElementById('setting-theme-color').value;
+        character.maxMemory = document.getElementById('setting-max-memory').value;
+        character.memorySummarizationInterval = parseInt(document.getElementById('setting-memory-interval').value, 10) || 0;
+        character.useCustomBubbleCss = document.getElementById('setting-use-custom-css').checked;
+        character.customBubbleCss = document.getElementById('setting-custom-bubble-css').value;
+
+        // 3. 检查备注名是否真的改变了
+        if (oldRemarkName !== newRemarkName && newRemarkName) {
+            // 如果改变了，创建两条系统消息
+            
+            // a) 这条是给AI看的，告诉它发生了什么
+            const contextMessage = {
+                id: `msg_sys_${Date.now()}`,
+                role: 'user', // 作为'user'角色，以便AI必须对其做出回应
+                content: `[system: 你在“404”软件中的备注名刚刚从“${oldRemarkName}”被修改为“${newRemarkName}”。请在你的下一条回复中，自然地对这个变化做出反应。]`,
+                parts: [{ type: 'text', text: `[system: 你在“404”软件中的备注名刚刚从“${oldRemarkName}”被修改为“${newRemarkName}”。请在你的下一条回复中，自然地对这个变化做出反应。]` }],
+                timestamp: Date.now()
+            };
+
+            // b) 这条是显示在界面上给用户看的
+            const displayMessage = {
+                id: `msg_disp_${Date.now()}`,
+                role: 'system',
+                content: `[system-display:你将“${character.realName}”  的昵称修改为 “${newRemarkName}”]`
+            };
+
+            // 4. 将这两条消息添加到历史记录中，并立即显示提示
+            character.history.push(displayMessage, contextMessage);
+            addMessageBubble(displayMessage); // 立即在屏幕上渲染灰色提示条
         }
+
+        // --- 【核心修改结束】 ---
+
+        await saveData();
+        showToast('设置已保存！');
+        
+        // 更新UI
+        chatRoomTitle.textContent = character.remarkName; // 使用更新后的名字
+        renderChatList();
+        updateCustomBubbleStyle(currentChatId, character.customBubbleCss, character.useCustomBubbleCss);
+        currentPage = 1;
+        // 注意：我们不再在这里调用renderMessages，因为addMessageBubble已经添加了新消息
+        // renderMessages(false, true); 
+    }
+}
 
 // ▼▼▼ 使用这个新版本完整替换旧的 setupApiSettingsApp 函数 ▼▼▼
 function setupApiSettingsApp() {
@@ -7036,36 +7076,40 @@ function setupApiSettingsApp() {
                 if (selectedMemberIds.length < 1) return showToast('请至少选择一个群成员。');
                 if (!groupName) return showToast('请输入群聊名称。');
                 const firstChar = db.characters.length > 0 ? db.characters[0] : null;
-                const newGroup = {
-                    id: `group_${Date.now()}`,
-                    name: groupName,
-                    avatar: 'https://i.postimg.cc/fTLCngk1/image.jpg',
-                    me: {
-                        nickname: firstChar ? firstChar.myName : '我',
-                        persona: firstChar ? firstChar.myPersona : '',
-                        avatar: firstChar ? firstChar.myAvatar : 'https://i.postimg.cc/GtbTnxhP/o-o-1.jpg'
-                    },
-                    members: selectedMemberIds.map(charId => {
-                        const char = db.characters.find(c => c.id === charId);
-                        return {
-                            id: `member_${char.id}`,
-                            originalCharId: char.id,
-                            realName: char.realName,
-                            groupNickname: char.remarkName,
-                            persona: char.persona,
-                            avatar: char.avatar
-                        };
-                    }),
-                    theme: 'white_pink',
-                    maxMemory: 10,
-                    chatBg: '',
-                    history: [],
-                    isPinned: false,
-                    avatarLibrary: [], // <--- 添加这一行
-                    useCustomBubbleCss: false,
-                    customBubbleCss: '',
-                    worldBookIds: []
-                };
+const newGroup = {
+    id: `group_${Date.now()}`,
+    name: groupName,
+    avatar: 'https://i.postimg.cc/fTLCngk1/image.jpg',
+    me: {
+        nickname: firstChar ? firstChar.myName : '我',
+        persona: firstChar ? firstChar.myPersona : '',
+        avatar: firstChar ? firstChar.myAvatar : 'https://i.postimg.cc/GtbTnxhP/o-o-1.jpg'
+    },
+    members: selectedMemberIds.map(charId => {
+        const char = db.characters.find(c => c.id === charId);
+        return {
+            id: `member_${char.id}`,
+            originalCharId: char.id,
+            realName: char.realName,
+            groupNickname: char.remarkName,
+            persona: char.persona,
+            avatar: char.avatar
+        };
+    }),
+    theme: 'white_pink',
+    maxMemory: 10,
+    chatBg: '',
+    history: [],
+    isPinned: false,
+    avatarLibrary: [],
+    useCustomBubbleCss: false,
+    customBubbleCss: '',
+    worldBookIds: [],
+    // 【新增】确保新群聊拥有完整的记忆属性
+    memories: [],
+    memorySummarizationInterval: 20,
+    messagesSinceLastSummary: 0
+};
                 db.groups.push(newGroup);
                 await saveData();
                 renderChatList();
@@ -8590,6 +8634,7 @@ async function summarizeRecentChatHistory(chat) {
 </body>
 
 </html>
+
 
 
 
