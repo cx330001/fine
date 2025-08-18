@@ -4579,28 +4579,40 @@ function renderChatList() {
                     bubbleElement.setAttribute('onclick', `showVideoChatLogModal('${id}')`);
                 }
             } 
-             else if ((isSent && sentStickerMatch && stickerData) || (!isSent && receivedStickerMatch)) {
-                bubbleElement = document.createElement('div');
-                bubbleElement.className = 'image-bubble';
-                let stickerSrc;
-                const aiPath = receivedStickerMatch[1].trim();
+else if ((isSent && sentStickerMatch && stickerData) || (!isSent && receivedStickerMatch)) {
+    bubbleElement = document.createElement('div');
+    bubbleElement.className = 'image-bubble';
+    
+    let stickerSrc;
+    if (isSent) {
+        // 这是处理【您发送的】表情包的正确逻辑
+        stickerSrc = stickerData;
+    } else {
+        // 这是处理【AI接收的】表情包的正确逻辑
+        const aiPath = receivedStickerMatch[1].trim();
+        if (aiPath.startsWith('http')) {
+            stickerSrc = aiPath;
+        } else {
+            const pathPartMatch = aiPath.match(/[a-zA-Z0-9]+\/.*$/);
+            if (pathPartMatch) {
+                stickerSrc = `https://i.postimg.cc/${pathPartMatch[0]}`;
+            } else {
+                stickerSrc = `https://i.postimg.cc/${aiPath}`;
+            }
+        }
+    }
 
-                 // 智能判断：如果AI给的路径本身就是完整的URL
-                if (aiPath.startsWith('http')) {
-                 // 直接使用这个完整的URL
-                      stickerSrc = aiPath;
-                              } else {
-                          // 否则，认为是旧的短路径格式，进行拼接
-                     const pathPartMatch = aiPath.match(/[a-zA-Z0-9]+\/.*$/);
-                       if (pathPartMatch) {
-                     stickerSrc = `https://i.postimg.cc/${pathPartMatch[0]}`;
-                      } else {
-                      // 如果正则匹配失败，做一个兼容处理
-                     stickerSrc = `https://i.postimg.cc/${aiPath}`;
-                           }
-                     }
-                bubbleElement.innerHTML = `<img src="${stickerSrc}" alt="表情包">`;
-            } else if (privateGiftMatch || groupGiftMatch) {
+    // 确保 stickerSrc 有效才创建图片
+    if (stickerSrc) {
+        bubbleElement.innerHTML = `<img src="${stickerSrc}" alt="表情包">`;
+    } else {
+        // 如果因为某些原因图片地址无效，显示一个提示，避免页面崩溃
+        bubbleElement.textContent = '[表情加载失败]';
+        bubbleElement.style.padding = '10px';
+        bubbleElement.style.fontSize = '12px';
+        bubbleElement.style.color = '#888';
+    }
+} else if (privateGiftMatch || groupGiftMatch) {
                 const match = privateGiftMatch || groupGiftMatch;
                 bubbleElement = document.createElement('div');
                 bubbleElement.className = 'gift-card';
@@ -8134,4 +8146,5 @@ function deleteVideoChatMessage(messageId) {
 </body>
 
 </html>
+
 
