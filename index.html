@@ -4582,7 +4582,23 @@ function renderChatList() {
              else if ((isSent && sentStickerMatch && stickerData) || (!isSent && receivedStickerMatch)) {
                 bubbleElement = document.createElement('div');
                 bubbleElement.className = 'image-bubble';
-                let stickerSrc = isSent ? stickerData : `https://i.postimg.cc/${receivedStickerMatch[1].trim().match(/[a-zA-Z0-9]+\/.*$/)[0]}`;
+                let stickerSrc;
+                const aiPath = receivedStickerMatch[1].trim();
+
+                 // 智能判断：如果AI给的路径本身就是完整的URL
+                if (aiPath.startsWith('http')) {
+                 // 直接使用这个完整的URL
+                      stickerSrc = aiPath;
+                              } else {
+                          // 否则，认为是旧的短路径格式，进行拼接
+                     const pathPartMatch = aiPath.match(/[a-zA-Z0-9]+\/.*$/);
+                       if (pathPartMatch) {
+                     stickerSrc = `https://i.postimg.cc/${pathPartMatch[0]}`;
+                      } else {
+                      // 如果正则匹配失败，做一个兼容处理
+                     stickerSrc = `https://i.postimg.cc/${aiPath}`;
+                           }
+                     }
                 bubbleElement.innerHTML = `<img src="${stickerSrc}" alt="表情包">`;
             } else if (privateGiftMatch || groupGiftMatch) {
                 const match = privateGiftMatch || groupGiftMatch;
@@ -5145,7 +5161,7 @@ function generatePrivateSystemPrompt(character) {
     prompt += `   d) 语音消息: [${character.realName}的语音：{语音内容}]\n`;
     prompt += `   e) 照片/视频: [${character.realName}发来的照片/视频：{描述}]\n`;
     prompt += `   f) 给我的转账: [${character.realName}的转账：{金额}元；备注：{备注}]\n`;
-    prompt += `   g) 表情包/图片: [${character.realName}发送的表情包：{表情包路径}] (路径只需提供 '代码/文件名.jpg' 部分)\n`;
+    prompt += `   g) 表情包/图片: [${character.realName}发送的表情包：{表情包路径}] (此处可以是完整的URL，也可以是旧的'代码/文件名.jpg'短路径)\n`;
     prompt += `11. 你的每次回复可以生成3到7条消息。为了让对话更自然、更深入，请根据上下文和你的角色性格，尽量生成内容更丰富、更连贯的多条消息来推动对话，而不是只做简短的应答。\n`;
     prompt += `12. 不要主动结束对话。\n`;
     prompt += `13. ✨✨✨ 视频通话请求（最重要规则）✨✨✨: 当你收到 \`[system: ...正在尝试发起视频通话...]\` 消息时，你的回复【必须】是以下两种格式之一：
@@ -5208,14 +5224,14 @@ function generateGroupSystemPrompt(group) {
     prompt += `5. **你的输出格式 (极其重要)**: 你生成的每一条消息都 **必须** 严格遵循以下格式之一。每条消息占一行。\n`;
     prompt += `   - **普通消息**: \`[{成员真名}的消息：{消息内容}]\`\n`;
     prompt += `   - **引用消息**: \`[reply_to:{被回复的消息ID}][{成员真名}的消息：{回复内容}]\`\n`;
-    prompt += `   - **表情包**: \`[{成员真名}发送的表情包：{表情包路径}]\`\n`;
+    prompt += `   - **表情包**: \`[{成员真名}发送的表情包：{表情包路径}]\` (此处可以是完整的URL，也可以是旧的短路径)\n`;
     prompt += `   - **语音**: \`[{成员真名}的语音：{语音转述的文字}]\`\n`;
     prompt += `   - **照片/视频**: \`[{成员真名}发来的照片/视频：{内容描述}]\`\n\n`;
 
     prompt += `6. **模拟群聊氛围**: 为了让群聊看起来真实，你的每一次回复都必须遵循以下要求：\n`;
     const numMembers = group.members.length;
     const minMessages = numMembers > 2 ? 2 : 1; // 成员多就多发点
-    const maxMessages = numMembers + 2;
+    const maxMessages = numMembers + 3;
     prompt += `   - **消息数量**: 你的回复需要包含 **${minMessages}到${maxMessages}条** 消息。\n`;
     prompt += `   - **发言者与顺序随机**: 随机选择群成员发言，顺序也必须是随机的。为了模拟真实的群聊氛围，你的回复应该让【不同】的成员参与进来，避免总是同样几个人在说话。请根据他们的性格和对话内容，安排他们进行互动。\n\n`;
 
@@ -5525,14 +5541,22 @@ async function processStream(response, chat, apiType) {
                 ...(replyToId && { replyToMessageId: replyToId.trim() })
             };
 
-            if (currentChatType === 'group') {
-                const senderMatch = content.match(/\[(.*?)的消息：/);
-                if (senderMatch) {
-                    const senderRealName = senderMatch[1];
-                    const sender = chat.members.find(m => m.realName === senderRealName);
-                    message.senderId = sender ? sender.id : chat.members[0].id;
-                }
-            }
+    // ▼▼▼ 这是替换后的新代码块 ▼▼▼
+    if (currentChatType === 'group') {
+        // 修正方案：我们不再依赖于消息的类型，而是直接匹配成员的真名。
+        // 遍历所有AI成员，看这条消息是谁发的。
+        const sender = chat.members.find(member => content.startsWith(`[${member.realName}`));
+
+        if (sender) {
+            // 如果找到了匹配的成员，就记录下他/她的唯一ID
+            message.senderId = sender.id;
+        } else {
+            // 如果因为某些原因没找到（例如AI格式错误），
+            // 默认指定给第一个成员，以防出错。
+            message.senderId = chat.members[0].id; 
+        }
+    }
+    // ▲▲▲ 新代码块结束 ▲▲▲
             chat.history.push(message);
             addMessageBubble(message);
 
@@ -8109,5 +8133,5 @@ function deleteVideoChatMessage(messageId) {
 </div>
 </body>
 
-
 </html>
+
