@@ -31,23 +31,34 @@ body {
     overflow: hidden; /* 防止body本身出现滚动条 */
 }
 
-/* 3. #phone-screen 使用与“章鱼”文件相同的vh布局方法 */
+/* --- Start of Replacement Code --- */
+
 #phone-screen {
     width: 100%;
-    height: 100vh; /* 核心：使用 100vh (视口高度) 来强制铺满整个屏幕 */
-    
-    /* 移除旧的 position: fixed 方案 */
-    /* top, left, right, bottom 属性不再需要 */
-    
-    /* 保留其他必要的布局属性 */
-    position: relative; /* 作为内部绝对定位元素的基准 */
+    /* Use 100vh to ensure it fills the entire screen height */
+    height: 100vh; 
+    position: relative;
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    background-color: #ffffff; /* 您想要的白色背景 */
+    background-color: #ffffff; /* Your desired white background */
 }
 
-/* --- 替换结束 --- */
+#chat-input-area {
+    flex-shrink: 0;
+    padding: 8px;
+    /* This is the key: adds padding equal to the height of the "black bar" */
+    padding-bottom: calc(8px + env(safe-area-inset-bottom)); 
+    background-color: rgba(247, 247, 247, 0.8);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+/* --- End of Replacement Code --- */
 /* 3. 【核心】隐藏掉模拟器的状态栏 */
 #status-bar {
     display: none;
@@ -71,10 +82,6 @@ body {
     font-weight: 600;
 }
 
-/* 5. 【核心】让聊天输入框和底部导航栏自动适应iPhone底部的“小黑条”安全区 */
-#chat-input-area {
-    padding-bottom: calc(8px + env(safe-area-inset-bottom)); /* <-- 注意！*/
-}
 
         #status-bar { 
     display: none; 
@@ -102,7 +109,8 @@ body {
         .header .save-btn { font-size: 16px; color: var(--accent-color); font-weight: 600; cursor: pointer; }
 /* ▼▼▼ 请用这【一整块代码】，完整替换掉您现有的 #home-screen, #clock-container, 和 #app-grid 样式 ▼▼▼ */
 
-/* 1. 让首页容器作为壁纸层，完全铺满，不留任何内边距 */
+/* --- Start of Replacement Code --- */
+
 #home-screen {
     display: flex;
     flex-direction: column;
@@ -113,19 +121,20 @@ body {
     background-position: center;
     padding-left: 20px;
     padding-right: 20px;
-    /* 关键：移除了所有垂直方向的 padding */
+    /* We remove vertical padding here to rely on margins */
 }
 
-/* 2. 把时钟作为独立内容，用 margin 从屏幕顶部推下来 */
 #clock-container {
     text-align: center;
     color: white;
     text-shadow: 0 3px 8px rgba(0,0,0,0.4);
     margin-bottom: 20px;
     flex-shrink: 0;
-    /* 关键：用 margin-top 把时钟推到安全的位置 */
+    /* This is the key: pushes the clock down from the top edge */
     margin-top: calc(60px + env(safe-area-inset-top));
 }
+
+/* --- End of Replacement Code --- */
 
 /* 3. 将App图标网格作为一个整体，用 margin 从屏幕底部推上来 */
 #app-grid {
@@ -278,19 +287,7 @@ body {
 
         .message-bubble.user { flex-direction: row-reverse; }
         #typing-indicator { align-self: flex-start; display: none; margin: 0 10px 10px; color: var(--text-secondary); }
-#chat-input-area {
-    flex-shrink: 0;
-    padding: 8px;
-    /* 核心：为底部增加安全距离 */
-    padding-bottom: calc(8px + env(safe-area-inset-bottom)); 
-    background-color: rgba(247, 247, 247, 0.8);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border-top: 1px solid var(--border-color);
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-}
+
 
 #chat-list-bottom-nav {
     position: absolute;
@@ -23068,6 +23065,7 @@ document.getElementById('add-my-avatar-batch-btn').addEventListener('click', asy
 <!-- ▲▲▲ 新HTML粘贴结束 ▲▲▲ -->
 </body>
 </html>
+
 
 
 
