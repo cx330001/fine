@@ -73,7 +73,7 @@ body {
 
 /* 5. 【核心】让聊天输入框和底部导航栏自动适应iPhone底部的“小黑条”安全区 */
 #chat-input-area {
-    padding-bottom: 8px; /* 只保留您原本的8px基本内边距 */
+    padding-bottom: calc(8px + env(safe-area-inset-bottom)); /* <-- 注意！*/
 }
 
         #status-bar { 
@@ -23068,6 +23068,7 @@ document.getElementById('add-my-avatar-batch-btn').addEventListener('click', asy
 <!-- ▲▲▲ 新HTML粘贴结束 ▲▲▲ -->
 </body>
 </html>
+
 
 
 
